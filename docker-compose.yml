@@ -9,6 +9,8 @@ services:
       - ./src:/app/src
     env_file:
       - .env
+    networks:
+      - web
 
 networks:
   web:
