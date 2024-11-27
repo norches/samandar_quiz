@@ -7,7 +7,7 @@ services:
     volumes:
       - ./src:/app/src
     ports:
-      - "${APP_PORT}:${APP_PORT}"
+      - "${DEV_PORT_MAPPING:-}"
     env_file:
       - .env
 
