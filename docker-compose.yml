@@ -6,8 +6,6 @@ services:
       target: ${BUILD_STAGE:-development}
     volumes:
       - ./src:/app/src
-    ports:
-      - "${DEV_PORT_MAPPING:-}"
     env_file:
       - .env
 
