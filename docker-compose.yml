@@ -1,5 +1,6 @@
 services:
   quiz-app:
+    container_name: quiz-app
     build:
       context: .
       dockerfile: Dockerfile
