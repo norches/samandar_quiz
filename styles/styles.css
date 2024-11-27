@@ -1,0 +1,70 @@
+body {
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Correct answer animation */
+@keyframes correctAnimation {
+  from {
+    background-color: transparent;
+  }
+  to {
+    background-color: #d4edda;
+  }
+}
+
+/* Incorrect answer animation */
+@keyframes incorrectAnimation {
+  from {
+    background-color: transparent;
+  }
+  to {
+    background-color: #f8d7da;
+  }
+}
+
+/* Apply animations to labels */
+.correct-answer {
+  animation: correctAnimation 0.5s forwards;
+}
+
+.incorrect-answer {
+  animation: incorrectAnimation 0.5s forwards;
+}
+
+.actions-container {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+}
+
+.button-back {
+}
+.button-next {
+}
+.title-type {
+  margin-bottom: 32px;
+}
+
+.start-button {
+  margin-top: 16px;
+}
+
+.question-block {
+  background-color: #d0ecff;
+  padding: 16px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.question-number {
+  font-size: 16px;
+  margin-right: 16px;
+  background: #1d3557;
+  color: #fff;
+  padding: 8px;
+  border-radius: 8px;
+}

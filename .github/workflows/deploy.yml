@@ -1,0 +1,45 @@
+name: Deploy to Remote Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create .env file
+        run: |
+          echo "NODE_ENV=${{ secrets.NODE_ENV }}" > .env
+          echo "APP_PORT=${{ secrets.APP_PORT }}" >> .env
+          echo "BUILD_STAGE=${{ secrets.BUILD_STAGE }}" >> .env
+          echo "API_URL=${{secrets.API_URL}}" >> .env
+          echo "VIRTUAL_HOST=${{ secrets.VIRTUAL_HOST }}" >> .env
+          echo "LETSENCRYPT_HOST=${{ secrets.LETSENCRYPT_HOST }}" >> .env
+          echo "LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}" >> .env
+
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: '.'
+          target: '~/samandar_quiz'
+
+      - name: Deploy application
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/samandar_quiz
+            docker compose down
+            docker image prune --filter "dangling=true" -f
+            docker compose up -d --build

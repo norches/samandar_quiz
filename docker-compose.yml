@@ -1,0 +1,16 @@
+services:
+  quiz-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ${BUILD_STAGE:-development}
+    volumes:
+      - ./src:/app/src
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
+    env_file:
+      - .env
+
+networks:
+  web:
+    external: true
