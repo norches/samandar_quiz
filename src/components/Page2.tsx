@@ -32,7 +32,7 @@ function Page2() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [timer, setTimer] = useState(355); // Total time for the entire quiz in seconds
+  const [timer, setTimer] = useState(900); // Total time for the entire quiz in seconds
 
   useEffect(() => {
     if (quizFile) {
