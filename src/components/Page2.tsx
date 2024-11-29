@@ -6,9 +6,79 @@ import {
   Container,
   RadioGroup,
   FormControlLabel,
-  Radio
+  Radio,
+  Paper,
+  PaperProps
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
+import { styled } from '@mui/material/styles';
 import * as XLSX from 'xlsx';
+interface ItemProps extends PaperProps {
+  answerVariant: 'default' | 'readOnly' | 'correct' | 'incorrect';
+}
+
+const Item = styled(Paper, {
+  shouldForwardProp: (prop) => prop !== 'answerVariant'
+})<ItemProps>(({ theme, answerVariant }) => ({
+  height: '100%',
+  backgroundColor:
+    answerVariant === 'correct'
+      ? '#d4edda'
+      : answerVariant === 'incorrect'
+        ? '#f8d7da'
+        : '#1d3557',
+  opacity: answerVariant === 'readOnly' ? '0.8' : '1',
+  padding: theme.spacing(1),
+  textAlign: 'center',
+  color:
+    answerVariant === 'correct' || answerVariant === 'incorrect'
+      ? '#000'
+      : '#fff',
+  cursor: answerVariant === 'readOnly' ? 'auto' : 'pointer',
+  transition: 'background-color 0.1s ease-in'
+}));
+
+interface GridItemProps extends PaperProps {
+  isReadOnly: boolean;
+  index: number;
+  currentQuestion: Question;
+  currentQuestionIndex: number;
+  answers: any;
+  onClick: () => void;
+}
+
+const GridItem: React.FC<GridItemProps> = ({
+  isReadOnly,
+  currentQuestion,
+  index,
+  answers,
+  currentQuestionIndex,
+  children,
+  onClick,
+  ...props
+}) => {
+  let answerVariant: ItemProps['answerVariant'] = 'default';
+  if (isReadOnly) {
+    if (index === currentQuestion.correct_option_index) {
+      answerVariant = 'correct';
+    } else if (index === answers[currentQuestionIndex]) {
+      answerVariant = 'incorrect';
+    } else {
+      answerVariant = 'readOnly';
+    }
+  }
+
+  return (
+    <Item
+      tabIndex={0}
+      answerVariant={answerVariant}
+      onClick={!isReadOnly ? onClick : undefined}
+      {...props}
+    >
+      {children}
+    </Item>
+  );
+};
 
 interface Question {
   question_text: string;
@@ -30,9 +100,9 @@ function Page2() {
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<(number | null)[]>([]);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [timer, setTimer] = useState(900); // Total time for the entire quiz in seconds
+  const [answers, setAnswers] = useState<(number | null)[]>([null]);
+  const initialTimer = 30;
+  const [timer, setTimer] = useState(initialTimer); // Total time for the entire quiz in seconds
 
   useEffect(() => {
     if (quizFile) {
@@ -41,8 +111,10 @@ function Page2() {
         .then((data) => {
           const workbook = XLSX.read(data, { type: 'array' });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-          let loadedQuestions = jsonData.slice(1).map((row: any[]) => {
+          const jsonData: any[] = XLSX.utils.sheet_to_json(sheet, {
+            header: 1
+          });
+          let loadedQuestions = jsonData.slice(1).map((row) => {
             const options = [row[1], row[2], row[3], row[4]];
             const correctOptionIndex = parseInt(row[5]) - 1; // original index
 
@@ -74,34 +146,35 @@ function Page2() {
     navigate('/result', { state: { questions, answers } });
   };
 
+  const isReadOnly = answers[currentQuestionIndex] !== null;
+
   useEffect(() => {
-    if (timer > 0) {
-      const timeout = setTimeout(() => setTimer(timer - 1), 1000);
-      return () => clearTimeout(timeout);
-    } else {
-      finishTest();
+    if (!isReadOnly) {
+      setTimer(initialTimer);
+    }
+  }, [currentQuestionIndex]);
+
+  useEffect(() => {
+    if (!isReadOnly) {
+      if (timer > 0) {
+        const timeout = setTimeout(() => setTimer(timer - 1), 1000);
+        return () => clearTimeout(timeout);
+      } else {
+        putAnswer(-1);
+        handleNext();
+      }
     }
   }, [timer]);
 
-  const isReadOnly =
-    answers[currentQuestionIndex] !== null &&
-    currentQuestionIndex < questions.length;
-
-  const handleOptionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const putAnswer = (answerIndex: number) => {
     if (!isReadOnly) {
       const updatedAnswers = [...answers];
-      updatedAnswers[currentQuestionIndex] = parseInt(event.target.value);
+      updatedAnswers[currentQuestionIndex] = answerIndex;
       setAnswers(updatedAnswers);
     }
   };
 
   const handleNext = () => {
-    if (isReadOnly && currentQuestionIndex != questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedOption(null);
-      return;
-    }
-
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
@@ -121,9 +194,17 @@ function Page2() {
 
   const currentQuestion = questions[currentQuestionIndex];
 
+  const correctlyAnsweredQuestion =
+    currentQuestionIndex === currentQuestion.correct_option_index;
+
   return (
     <Container maxWidth="sm">
-      <Typography variant="subtitle1">Vaqt qoldi: {timer}s</Typography>
+      <Typography
+        variant="subtitle1"
+        className={`timer-text ${timer <= 5 ? 'danger-time' : ''} `}
+      >
+        Vaqt qoldi: {timer}s
+      </Typography>
       <div className="question-block">
         <div>
           <span className="question-number">
@@ -132,71 +213,63 @@ function Page2() {
         </div>
         <Typography variant="body1">{currentQuestion.question_text}</Typography>
       </div>
-
-      <RadioGroup
-        value={
-          selectedOption !== null
-            ? selectedOption?.toString()
-            : isReadOnly
-              ? answers[currentQuestionIndex]
-              : ''
-        }
-        onChange={handleOptionChange}
-      >
+      <Grid container spacing={2}>
         {currentQuestion.options.map((option, index) => {
-          const isSelected = selectedOption === index;
-          let labelClass = '';
-
-          if (isReadOnly) {
-            if (index == currentQuestion.correct_option_index) {
-              labelClass = 'correct-answer';
-            } else if (index === answers[currentQuestionIndex]) {
-              labelClass = 'incorrect-answer';
-            }
-          }
-
           return (
-            <FormControlLabel
-              key={index}
-              value={index.toString()}
-              control={<Radio />}
-              label={<span className={labelClass}>{option}</span>}
-              disabled={isReadOnly}
-            />
+            <Grid key={index} size={6}>
+              <GridItem
+                currentQuestion={currentQuestion}
+                currentQuestionIndex={currentQuestionIndex}
+                answers={answers}
+                onClick={() => putAnswer(index)}
+                isReadOnly={isReadOnly}
+                index={index}
+              >
+                {option}
+              </GridItem>
+            </Grid>
           );
         })}
-      </RadioGroup>
-      <div className="actions-container">
-        <Button
-          variant="outlined"
-          className="button-back"
-          onClick={handleBack}
-          disabled={currentQuestionIndex === 0}
-        >
-          &lt;Orqaga
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          className="button-next"
-          onClick={handleNext}
-          disabled={selectedOption === null && !isReadOnly}
-        >
-          {currentQuestionIndex === questions.length - 1
-            ? 'Tugatish✓'
-            : 'Keyingisi>'}
-        </Button>
-        {currentQuestionIndex !== questions.length - 1 && (
-          <Button
-            variant="contained"
-            color="error"
-            className="button-next"
-            onClick={finishTest}
-          >
-            Tugatish✓
-          </Button>
-        )}
-      </div>
+      </Grid>
+      <Grid container spacing={1}>
+        <Grid size={8}>
+          <div className="actions-container">
+            <Button
+              variant="outlined"
+              className="button-back"
+              onClick={handleBack}
+              disabled={currentQuestionIndex === 0}
+            >
+              &lt;Orqaga
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              className="button-next"
+              onClick={handleNext}
+              disabled={!isReadOnly}
+            >
+              {currentQuestionIndex === questions.length - 1
+                ? 'Tugatish✓'
+                : 'Keyingisi>'}
+            </Button>
+          </div>
+        </Grid>
+        <Grid size={4}>
+          <div className="actions-container">
+            {currentQuestionIndex !== questions.length - 1 && (
+              <Button
+                variant="contained"
+                color="error"
+                className="button-finish"
+                onClick={finishTest}
+              >
+                Tugatish✓
+              </Button>
+            )}
+          </div>
+        </Grid>
+      </Grid>
     </Container>
   );
 }

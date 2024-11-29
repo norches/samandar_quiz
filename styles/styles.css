@@ -36,12 +36,17 @@ body {
   display: flex;
   flex-direction: row;
   gap: 16px;
+  margin-top: 16px;
 }
 
 .button-back {
 }
 .button-next {
 }
+
+.button-finish {
+}
+
 .title-type {
   margin-bottom: 32px;
 }
@@ -58,6 +63,7 @@ body {
   flex-direction: column;
   justify-content: flex-start;
   gap: 8px;
+  margin-bottom: 16px;
 }
 
 .question-number {
@@ -67,4 +73,12 @@ body {
   color: #fff;
   padding: 8px;
   border-radius: 8px;
+}
+
+.timer-text {
+  text-align: right;
+}
+
+.danger-time {
+  color: red;
 }
